@@ -3,17 +3,11 @@
                            PersistentVector
                            PersistentArrayMap)))
 
-; (defn- prefix [p fields]
-;     (map (fn [field] (if (seq? field) (let [[fname & opts] field]
-;                                          (cons (str p fname) opts))
-;                                       (str p field)))
-;          fields))
-
-(def hierarchy (-> (make-hierarchy)
-    (derive ::field-with-opts ::field)
-    (derive ::simple-field ::field)
-    (derive ::block-with-opts ::block)
-    (derive ::simple-block ::block)))
+; (def hierarchy (-> (make-hierarchy)
+;     (derive ::field-with-opts ::field)
+;     (derive ::simple-field ::field)
+;     (derive ::block-with-opts ::block)
+;     (derive ::simple-block ::block)))
 
 (defn node-type [n]
     (cond (vector? n) (if (keyword? (first n))
@@ -22,8 +16,9 @@
           (list? n)   ::field-with-opts
           (string? n) ::simple-field))
 
+
 (def basic-hospital-member-info [
-    '("title" :select-in {0 "Dr", 1 "Pr", 2 "Mrs", 3 "Mr"})
+    '("title" :select-in [["Dr" 0] ["Pr" 1]], :label :none)
     [:suffix "name"
         "given"
         "middle"
@@ -41,6 +36,7 @@
     "countrycode"])
 
 (def hospital-member-info [
+    "type"
     basic-hospital-member-info
     "countrycode"
     [:prefix "tel" tel-info]
@@ -87,11 +83,23 @@
 (def patient [:section "patient"
     basic-patient-info])
 
+(def drug [:section "drug"
+    "medicinalproduct"
+    "obtaindrugcountry"
+    [:prefix "drug"
+        "characterization"
+        "batchnumb"
+        [:prefix "authorization"
+            "numb"
+            "country"
+            "holder"]]])
+
 (def full-icsr
     [:section "ichicsr"
         [:section "safetyreport"
             primary-source
             sender
             receiver
-            patient]])
+            patient
+            drug]])
 
