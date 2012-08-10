@@ -7,4 +7,3 @@
         [:head [:title (irt-config config-title-kw)]]
         [:body b]))
 
-
