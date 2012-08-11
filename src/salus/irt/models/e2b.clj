@@ -1,7 +1,4 @@
-(ns salus.irt.models.e2b
-    (:import (clojure.lang PersistentList
-                           PersistentVector
-                           PersistentArrayMap)))
+(ns salus.irt.models.e2b)
 
 ; (def hierarchy (-> (make-hierarchy)
 ;     (derive ::field-with-opts ::field)
@@ -75,6 +72,7 @@
         "height"
         "sex"]
     [:only-if [== [:field "patientsex"] "2"]    ; Contextual verification: these fields are useful only if the patient is a women
+                                                ; NOT HANDLED SO FAR and then NOT DEFINITIVE SYNTAX
         "gestationperiod"
         "gestationperiodunit"
         "lastmenstrualdateformat"
