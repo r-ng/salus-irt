@@ -93,11 +93,9 @@
             "holder"]]])
 
 (def full-icsr
-    [:section "ichicsr"
-        [:section "safetyreport"
-            primary-source
-            sender
-            receiver
-            patient
-            drug]])
+    [primary-source
+     sender
+     receiver
+     patient
+     drug])
 
