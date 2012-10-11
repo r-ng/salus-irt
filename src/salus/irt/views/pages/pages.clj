@@ -6,7 +6,7 @@
 
 
 (def hiccup-repr-of-icsr-form
-    (future (icsr-node->hiccup full-icsr "" "")))
+    (future (icsr-definition->hiccup full-icsr)))
 
 (defpage "/" {} (full-page :icsr-input-page-title
 

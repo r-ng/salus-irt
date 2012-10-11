@@ -1,8 +1,25 @@
 (ns salus.irt.views.definitions.icsr-form)
 
 
+;; For now, this form definition file is based solely on E2B.
+
+
+(defn bool-field [f]
+    (list f :select-in [["Yes" 1] ["No" 2]]))
+
+(defn iso3166-field [f]
+    (list f :select-in ["US" "FR" "UK" "..."]))  ;; TO BE COMPLETED
+
+
+(def safety-report [:section "Safety report"
+    (iso3166-field "Primary source country")
+    (iso3166-field "Occurence country")
+    '("Transmission date" :date "yymmdd")
+    ]
+)
+
 (def basic-hospital-member-info [
-    '("title" :select-in [["Dr" 0] ["Pr" 1]], :label :none)
+    "title"
     [:suffix "name"
         "given"
         "middle"
@@ -31,7 +48,8 @@
 (def primary-source [:section "primarysource"
     [:prefix "reporter" basic-hospital-member-info]
     "country"
-    "qualification"
+    '("qualification" :select-in [["Physician" 1] ["Pharmacist" 2] ["Other health professional" 3]
+                                  ["Lawyer" 4]    ["Consumer or other non health professional" 5]])
     "literaturereference"
     "studyname"
     "sponsorstudynumb"
@@ -80,7 +98,8 @@
             "holder"]]])
 
 (def full-icsr
-    [primary-source
+    [safety-report
+     primary-source
      sender
      receiver
      patient

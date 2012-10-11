@@ -9,15 +9,16 @@
           (list? n)   ::field-with-opts
           (string? n) ::simple-field))
 
-(defn query-map [m & clauses]
+(defn query-map [m & c] (loop [clauses c]
     (if clauses
         (let [[keys func & clauses-rest] clauses]
             (if (and keys func)
                 (let [values (map m keys)]
-                    (if (reduce #(and %1 %2) true keys)
+                    (if (reduce #(and %1 %2) true values)
                         (apply func values)
-                        (query-map m clauses-rest)))
-                (throw (IllegalArgumentException. "query-map requires a even number of forms"))))))
+                        (recur clauses-rest)))
+                (throw (IllegalArgumentException.
+                        "query-map requires a even number of forms")))))))
 
 
 (defmulti icsr-node->hiccup (fn [node & args] (node-type node)))
@@ -34,6 +35,9 @@
     (let [full-name (str prefix field-name suffix)
           field     (query-map opts
                         [:select-in]   #(h/drop-down full-name %)
+                        [:date]        #(h/text-field {:class "datepicker" :format %} full-name)
+                            ;; we give it the class "datepicker" that will be retrieved
+                            ;; by JQuery UI 'datepicker' function
                         []             #(h/text-field full-name))]
         (if-let [l (:label opts)]
             (if (= l :none) field
@@ -57,4 +61,8 @@
                   :section (div-elem "section" :h3)
                   :tab     (div-elem "tab"     :h2)
                   :only-if (rec prefix suffix))))
+
+
+(defn icsr-definition->hiccup [node]
+    (icsr-node->hiccup node "" ""))
 
