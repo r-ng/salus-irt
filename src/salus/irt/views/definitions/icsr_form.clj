@@ -1,17 +1,4 @@
-(ns salus.irt.models.e2b)
-
-; (def hierarchy (-> (make-hierarchy)
-;     (derive ::field-with-opts ::field)
-;     (derive ::simple-field ::field)
-;     (derive ::block-with-opts ::block)
-;     (derive ::simple-block ::block)))
-
-(defn node-type [n]
-    (cond (vector? n) (if (keyword? (first n))
-                          ::block-with-opts
-                          ::simple-block)
-          (list? n)   ::field-with-opts
-          (string? n) ::simple-field))
+(ns salus.irt.views.definitions.icsr-form)
 
 
 (def basic-hospital-member-info [

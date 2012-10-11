@@ -2,7 +2,7 @@
 
 (def irt-config {
 
-:e2b-input-page-title "SALUS: ICSR Reporting Tool"
+:icsr-input-page-title "SALUS: ICSR Reporting Tool"
 
 :blank-title "..."
 
