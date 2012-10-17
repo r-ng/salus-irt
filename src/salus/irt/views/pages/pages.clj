@@ -5,9 +5,6 @@
           salus.irt.util))
 
 
-(def hiccup-repr-of-icsr-form
-    (icsr-definition->hiccup full-icsr))
-
 (defpage "/" {} (full-page :icsr-input-page-title
 
     [:h1 "ICSR Reporting"]
@@ -16,7 +13,7 @@
 
 ;         (submit-button "Validate"))
 
-    hiccup-repr-of-icsr-form
+    (icsr-definition->hiccup full-icsr)
 ))
 
 (defpage [:post "/new-icsr"] m (full-page :blank-title

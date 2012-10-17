@@ -2,7 +2,7 @@
     (:use noir.core hiccup.page hiccup.form)
     (:require [noir.server :as server]))
 
-(server/load-views "src/salus/irt/views/pages/")
+(server/load-views-ns 'salus.irt.views.pages)
 
 (defn -main [& m]
   (let [mode (keyword (or (first m) :dev))
