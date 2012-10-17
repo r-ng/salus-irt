@@ -1,47 +1,39 @@
 (ns salus.irt.views.definitions.icsr-form
-    (:require [salus.irt.views.generation.icsr-form :as g]))
+    (use salus.irt.views.generation.icsr-form))
 
 
 ;; Some helper functions to create an ICSR form definition:
 
-(defn text [& f] {:naming f})
+(defn section [n & inner] (div ["section" :h3] n inner))
 
-(defn selector [f & options]
-    {:selector options, :naming f})
+(defn tab [n & inner] (div ["tab" :h2] n inner))
 
-(defn id-prefix [p & inner] [::g/id-modifier #(str p %) inner])
-(defn id-suffix [s & inner] [::g/id-modifier #(str % s) inner])
-
-(defn section [s & inner] [::g/div {:class "section"
-                                    :header-tag :h3
-                                    :naming s}
-                                   inner])
-(defn tab [t & inner]     [::g/div {:class "tab"
-                                    :header-tag :h2
-                                    :naming t}
-                                   inner])
-
-;(defn same-line [& inner]    [::g/layout :same-line inner])
-;(defn one-per-line [& inner] [::g/layout :one-per-line inner])
-
-
-;; For now, this form definition file is based solely on E2B.
-
-
-(defn bool-field [& f]
+(defn bool-field [f]
     (selector f ["Yes" 1] ["No" 2]))
 
-(defn iso3166 [& f]
+(defn iso3166 [f]
     (selector f "US" "FR" "UK" "..."))  ;; TO BE COMPLETED
 
-(defn date [& f]
+(defn date [f]
     {:date "yymmdd", :naming f})
+
+
+;; For now, this form definition is based solely on E2B.
 
 
 (def safety-report (section "Safety report"
     (iso3166 "Primary source country")
-    (iso3166 "Occurence country")
+    (iso3166 ["Occurence country" "occurcountry"])
     (date "Transmission date")
+    (bool-field "Serious")
+    (id-prefix "seriousness" (map bool-field [
+        "Death"
+        "Life threatening"
+        "Hospitalization"
+        "Disabling"
+        ["Congenital anomaly" "congenitalanomali"]
+        ["Other condition" "other"]
+        ]))
     )
 )
 

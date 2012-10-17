@@ -2,6 +2,26 @@
     (:require [hiccup.form :as h]))
 
 
+(defn text [f] {:naming f})
+
+(defn selector [f & options]
+    {:selector options, :naming f})
+
+(defn div [class naming inner]
+    (let [attrs (conj {:naming naming}
+                      (if (vector? class) {:class (first class), :header-tag (second class)}
+                                          {:class class}))]
+        [::div attrs inner]))
+
+(defn id-prefix [p & inner] [::id-modifier #(str p %) inner])
+
+(defn id-suffix [s & inner] [::id-modifier #(str % s) inner])
+
+;(defn same-line [& inner]    [::g/layout :same-line inner])
+;
+;(defn one-per-line [& inner] [::g/layout :one-per-line inner])
+
+
 (defn get-label-and-id [names]
     (let [make-id (fn [label] [label
                                (-> label (.replace " " "") .toLowerCase)])]
@@ -11,9 +31,9 @@
               (string? names) (make-id names))))
 
 (defn node-type [n]
-    (cond (vector? n) (if (keyword? (first n))
-                          (first n)
-                          ::enumeration)
+    (cond (sequential? n) (if (keyword? (first n))
+                              (first n)
+                              ::enumeration)
           (string? n) ::simple-text-field
           (map? n)    ::field))
 
