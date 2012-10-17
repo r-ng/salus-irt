@@ -4,7 +4,7 @@
 
 ;; Some helper functions to create an ICSR form definition:
 
-(defn section [n & inner] (div ["section" :h3] n inner))
+(defn section [n & inner] (div ["section" :p] n inner))
 
 (defn tab [n & inner] (div ["tab" :h2] n inner))
 
@@ -34,11 +34,14 @@
         ["Congenital anomaly" "congenitalanomali"]
         ["Other condition" "other"]
         ]))
-    )
-)
+    (date "Receive date")
+    (date ["Most recent information receipt" "receiptdate"])
+    (bool-field "Additional document")
+    (text-area "Document list" [])
+))
 
 (def basic-hospital-member-info [
-    (text "title")
+    "title"
     (id-suffix "name"
         "given"
         "middle"

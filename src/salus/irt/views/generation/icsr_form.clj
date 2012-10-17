@@ -4,6 +4,9 @@
 
 (defn text [f] {:naming f})
 
+(defn text-area [f size]
+    {:text-area size, :naming f})
+
 (defn selector [f & options]
     {:selector options, :naming f})
 
@@ -22,13 +25,13 @@
 ;(defn one-per-line [& inner] [::g/layout :one-per-line inner])
 
 
-(defn get-label-and-id [names]
+(defn get-label-and-id [naming]
     (let [make-id (fn [label] [label
                                (-> label (.replace " " "") .toLowerCase)])]
-        (cond (sequential? names) (let [[label id] names]
-                                     (if id names
+        (cond (sequential? naming) (let [[label id] naming]
+                                     (if id naming
                                             (make-id label)))
-              (string? names) (make-id names))))
+              (string? naming) (make-id naming))))
 
 (defn node-type [n]
     (cond (sequential? n) (if (keyword? (first n))
@@ -67,9 +70,11 @@
           attrs  {:id id, :name id}
           field  (query-map field
                      [:selector]   #(h/drop-down attrs "" %)
-                     [:date]       (fn [format] (h/text-field (conj attrs [:class "datepicker"]) ""))
-                                      ;; TODO: Handle format (if different than "") through javascript
-                     []            #(h/text-field attrs ""))]
+                     [:date] (fn [format]  ;; TODO: Handle format (if different than "") through javascript
+                        (h/text-field (conj attrs [:class "datepicker"]) ""))
+                     [:text-area] (fn [size]  ;; TODO: See if size can be handled
+                        (h/text-area attrs ""))
+                     []   #(h/text-field attrs ""))]
         (let [opts (:opts field)]
             (if (and opts (:no-label opts))
                 field
