@@ -6,7 +6,7 @@
 
 
 (def hiccup-repr-of-icsr-form
-    (future (icsr-definition->hiccup full-icsr)))
+    (icsr-definition->hiccup full-icsr))
 
 (defpage "/" {} (full-page :icsr-input-page-title
 
@@ -16,7 +16,7 @@
 
 ;         (submit-button "Validate"))
 
-    @hiccup-repr-of-icsr-form
+    hiccup-repr-of-icsr-form
 ))
 
 (defpage [:post "/new-icsr"] m (full-page :blank-title

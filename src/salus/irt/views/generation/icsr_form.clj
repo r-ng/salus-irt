@@ -2,12 +2,20 @@
     (:require [hiccup.form :as h]))
 
 
+(defn get-label-and-id [names]
+    (let [make-id (fn [label] [label
+                               (-> label (.replace " " "") .toLowerCase)])]
+        (cond (sequential? names) (let [[label id] names]
+                                     (if id names
+                                            (make-id label)))
+              (string? names) (make-id names))))
+
 (defn node-type [n]
     (cond (vector? n) (if (keyword? (first n))
-                          ::block-with-opts
-                          ::simple-block)
-          (list? n)   ::field-with-opts
-          (string? n) ::simple-field))
+                          (first n)
+                          ::enumeration)
+          (string? n) ::simple-text-field
+          (map? n)    ::field))
 
 (defn query-map [m & c] (loop [clauses c]
     (if clauses
@@ -24,45 +32,40 @@
 (defmulti icsr-node->hiccup (fn [node & args] (node-type node)))
 ; Returns a _list_ of hiccup nodes
 
-(defmethod icsr-node->hiccup ::simple-block [content prefix suffix]
-    (map #(icsr-node->hiccup % prefix suffix) content))
+(defmethod icsr-node->hiccup ::enumeration [content id-modifier]
+    (map #(icsr-node->hiccup % id-modifier) content))
 
-(defmethod icsr-node->hiccup ::simple-field [field-name prefix suffix]
-    (let [full-name (str prefix field-name suffix)]
-        (list (h/label full-name full-name) (h/text-field full-name))))
+(defmethod icsr-node->hiccup ::simple-text-field [label id-modifier]
+    (let [[label id] (get-label-and-id label)
+          id         (id-modifier id)
+          attrs      {:id id, :name id}]
+        (list (h/label id label) (h/text-field attrs ""))))
 
-(defmethod icsr-node->hiccup ::field-with-opts [[field-name & {:as opts}] prefix suffix]
-    (let [full-name (str prefix field-name suffix)
-          field     (query-map opts
-                        [:select-in]   #(h/drop-down full-name %)
-                        [:date]        #(h/text-field {:class "datepicker" :format %} full-name)
-                            ;; we give it the class "datepicker" that will be retrieved
-                            ;; by JQuery UI 'datepicker' function
-                        []             #(h/text-field full-name))]
-        (if-let [l (:label opts)]
-            (if (= l :none) field
-                            (list (h/label l l) field))
-            (list (h/label full-name full-name) field))))
+(defmethod icsr-node->hiccup ::field [field id-modifier]
+    (let [[label id] (get-label-and-id (:naming field))
+          id     (id-modifier id)
+          attrs  {:id id, :name id}
+          field  (query-map field
+                     [:selector]   #(h/drop-down attrs "" %)
+                     [:date]       (fn [format] (h/text-field (conj attrs [:class "datepicker"]) ""))
+                                      ;; TODO: Handle format (if different than "") through javascript
+                     []            #(h/text-field attrs ""))]
+        (let [opts (:opts field)]
+            (if (and opts (:no-label opts))
+                field
+                (list (h/label id label) field)))))
 
-(defmethod icsr-node->hiccup ::block-with-opts [[opt param & content] prefix suffix]
-    (let [assert-param  (fn [f n] (assert (f param)
-                                          (str "In ICSR definition: " opt " not followed by a " n ".")))
-          assert-string #(assert-param string? "string")
-          rec           (fn [p s] (map #(icsr-node->hiccup % p s) content))
-          div-elem      (fn [css-class header-tag]
-                            (do (assert-string)
-                                [:div {:class css-class}
-                                    [header-tag param]
-                                    (rec prefix suffix)]))]
-        (case opt :prefix (do (assert-string)
-                              (rec (str prefix param) suffix))
-                  :suffix (do (assert-string)
-                              (rec prefix (str param suffix)))
-                  :section (div-elem "section" :h3)
-                  :tab     (div-elem "tab"     :h2)
-                  :only-if (rec prefix suffix))))
+(defmethod icsr-node->hiccup ::div [[_ params inner] id-modifier]
+    (let [[label id] (get-label-and-id (:naming params))
+          attrs      (conj (select-keys params #{:class}) [:id id])
+          header     (if-let [tag (:header-tag params)]
+                        [tag label] '())]
+        [:div attrs header (map #(icsr-node->hiccup % id-modifier) inner)]))
+
+(defmethod icsr-node->hiccup ::id-modifier [[_ func inner] id-modifier]
+    (map #(icsr-node->hiccup % (comp id-modifier func)) inner))
 
 
 (defn icsr-definition->hiccup [node]
-    (icsr-node->hiccup node "" ""))
+    (icsr-node->hiccup node identity))
 
