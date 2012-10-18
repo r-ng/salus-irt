@@ -55,18 +55,18 @@
 (defmulti icsr-node->hiccup (fn [node & args] (node-type node)))
 ; Returns a _list_ of hiccup nodes
 
-(defmethod icsr-node->hiccup ::enumeration [content id-modifier]
-    (map #(icsr-node->hiccup % id-modifier) content))
+(defmethod icsr-node->hiccup ::enumeration [content accum-state]
+    (map #(icsr-node->hiccup % accum-state) content))
 
-(defmethod icsr-node->hiccup ::simple-text-field [label id-modifier]
+(defmethod icsr-node->hiccup ::simple-text-field [label {:keys [id-modifier]}]
     (let [[label id] (get-label-and-id label)
           id         (id-modifier id)
           attrs      {:id id, :name id}]
         (list (h/label id label) (h/text-field attrs ""))))
 
-(defmethod icsr-node->hiccup ::field [field id-modifier]
+(defmethod icsr-node->hiccup ::field [field accum-state]
     (let [[label id] (get-label-and-id (:naming field))
-          id     (id-modifier id)
+          id     ((:id-modifier accum-state) id)
           attrs  {:id id, :name id}
           field  (query-map field
                      [:selector]   #(h/drop-down attrs "" %)
@@ -80,17 +80,18 @@
                 field
                 (list (h/label id label) field)))))
 
-(defmethod icsr-node->hiccup ::div [[_ params inner] id-modifier]
+(defmethod icsr-node->hiccup ::div [[_ params inner] accum-state]
     (let [[label id] (get-label-and-id (:naming params))
           attrs      (conj (select-keys params #{:class}) [:id id])
           header     (if-let [tag (:header-tag params)]
                         [tag label] '())]
-        [:div attrs header (map #(icsr-node->hiccup % id-modifier) inner)]))
+        [:div attrs header (map #(icsr-node->hiccup % accum-state) inner)]))
 
-(defmethod icsr-node->hiccup ::id-modifier [[_ func inner] id-modifier]
-    (map #(icsr-node->hiccup % (comp id-modifier func)) inner))
+(defmethod icsr-node->hiccup ::id-modifier [[_ func inner] accum-state]
+    (map #(icsr-node->hiccup % (merge-with comp accum-state {:id-modifier func})) inner))
 
 
 (defn icsr-definition->hiccup [node]
-    (icsr-node->hiccup node identity))
+    (icsr-node->hiccup node {:id-modifier identity
+                             :jquery-on-loading []}))
 
