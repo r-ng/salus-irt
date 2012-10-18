@@ -4,10 +4,6 @@
 
 ;; Some helper functions to create an ICSR form definition:
 
-(defn section [n & inner] (div ["section" :p] n inner))
-
-(defn tab [n & inner] (div ["tab" :h2] n inner))
-
 (defn bool-field [f]
     (selector f ["Yes" 1] ["No" 2]))
 
@@ -117,11 +113,11 @@
             "country"
             "holder"))))
 
-(def full-icsr
+(def full-icsr (section "ICSR tab"
     [safety-report
      primary-source
      sender
      receiver
      patient
-     drug])
+     drug]))
 

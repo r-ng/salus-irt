@@ -2,19 +2,16 @@
     (:require [hiccup.form :as h]))
 
 
-(defn text [f] {:naming f})
+(defn text [n] {:naming n})
 
-(defn text-area [f size]
-    {:text-area size, :naming f})
+(defn text-area [n size]
+    {:text-area size, :naming n})
 
-(defn selector [f & options]
-    {:selector options, :naming f})
+(defn selector [n & options]
+    {:selector options, :naming n})
 
-(defn div [class naming inner]
-    (let [attrs (conj {:naming naming}
-                      (if (vector? class) {:class (first class), :header-tag (second class)}
-                                          {:class class}))]
-        [::div attrs inner]))
+(defn section [n & inner]
+    [::section {:naming n} inner])
 
 (defn id-prefix [p & inner] [::id-modifier #(str p %) inner])
 
@@ -40,23 +37,28 @@
           (string? n) ::simple-text-field
           (map? n)    ::field))
 
-(defn query-map [m & c] (loop [clauses c]
+
+(defn- query-map [m & c] (loop [clauses c]
     (if clauses
         (let [[keys func & clauses-rest] clauses]
             (if (and keys func)
                 (let [values (map m keys)]
-                    (if (reduce #(and %1 %2) true values)
+                    (if (every? #(not= % nil) values)
                         (apply func values)
                         (recur clauses-rest)))
                 (throw (IllegalArgumentException.
                         "query-map requires a even number of forms")))))))
 
+(declare icsr-node->hiccup)
+
+(defn- rec-icsr [accum-state inner]
+    (doall (map #(icsr-node->hiccup % accum-state) inner)))
 
 (defmulti icsr-node->hiccup (fn [node & args] (node-type node)))
 ; Returns a _list_ of hiccup nodes
 
-(defmethod icsr-node->hiccup ::enumeration [content accum-state]
-    (map #(icsr-node->hiccup % accum-state) content))
+(defmethod icsr-node->hiccup ::enumeration [inner accum-state]
+    (rec-icsr accum-state inner))
 
 (defmethod icsr-node->hiccup ::simple-text-field [label {:keys [id-modifier]}]
     (let [[label id] (get-label-and-id label)
@@ -64,9 +66,9 @@
           attrs      {:id id, :name id}]
         (list (h/label id label) (h/text-field attrs ""))))
 
-(defmethod icsr-node->hiccup ::field [field accum-state]
+(defmethod icsr-node->hiccup ::field [field {:keys [id-modifier]}]
     (let [[label id] (get-label-and-id (:naming field))
-          id     ((:id-modifier accum-state) id)
+          id     (id-modifier id)
           attrs  {:id id, :name id}
           field  (query-map field
                      [:selector]   #(h/drop-down attrs "" %)
@@ -80,18 +82,22 @@
                 field
                 (list (h/label id label) field)))))
 
-(defmethod icsr-node->hiccup ::div [[_ params inner] accum-state]
+(defmethod icsr-node->hiccup ::section [[_ params inner] accum-state]
     (let [[label id] (get-label-and-id (:naming params))
           attrs      (conj (select-keys params #{:class}) [:id id])
-          header     (if-let [tag (:header-tag params)]
-                        [tag label] '())]
-        [:div attrs header (map #(icsr-node->hiccup % accum-state) inner)]))
+          [block-tag header]  (case (:section-level accum-state)
+                0 [:div      [:h2 label]]
+                1 [:fieldset [:legend label]]
+                  [:div      [:p label]])]
+        [block-tag attrs header
+            (rec-icsr (merge-with + accum-state {:section-level 1}) inner)]))
 
 (defmethod icsr-node->hiccup ::id-modifier [[_ func inner] accum-state]
-    (map #(icsr-node->hiccup % (merge-with comp accum-state {:id-modifier func})) inner))
+    (rec-icsr (merge-with comp accum-state {:id-modifier func}) inner))
 
 
 (defn icsr-definition->hiccup [node]
     (icsr-node->hiccup node {:id-modifier identity
-                             :jquery-on-loading []}))
+                             :section-level 0
+                             :jq-init-code (atom [])}))
 
