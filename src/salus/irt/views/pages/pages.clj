@@ -16,7 +16,7 @@
         (include-css "http://code.jquery.com/ui/1.9.0/themes/base/jquery-ui.css")
        
         [:script {:type "text/javascript"}
-           (str "$(function(){" jq-code "})")]]
+           (str "$(function(){ $(\".datepicker\").datepicker(); " jq-code "})")]]
       [:body
         [:h1 "ICSR Reporting"]
         hiccup-code])

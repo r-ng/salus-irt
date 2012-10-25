@@ -53,7 +53,7 @@
 (declare icsr-node->hiccup)
 
 (defn- rec-icsr [accum-state inner]
-    (doall (map #(icsr-node->hiccup % accum-state) inner)))
+    ((:eval-strategy accum-state) (map #(icsr-node->hiccup % accum-state) inner)))
 
 (defmulti icsr-node->hiccup (fn [node & args] (node-type node)))
 ; Returns a _list_ of hiccup nodes
@@ -67,7 +67,7 @@
           attrs      {:id id, :name id}]
         (list (h/label id label) " " (h/text-field attrs "") (if line-break [:br] " "))))
 
-(defmethod icsr-node->hiccup ::field [field {:keys [id-modifier line-break jq-code]}]
+(defmethod icsr-node->hiccup ::field [field {:keys [id-modifier line-break add-jq-code]}]
     (let [[label id] (get-label-and-id (:naming field))
           id     (id-modifier id)
           attrs  {:id id, :name id}
@@ -75,40 +75,40 @@
           field  (query-map field
                      [:selector]   #(h/drop-down attrs "" %)
                      [:date] (fn [format]
-                        (do (.append jq-code
-                               (str "x = $(\"#" id "\");"  ;; TODO: Generate instead just a list of pairs (id,format)
-                                    "x.datepicker();"      ;; and the JS code necessary to initialize them
-                                    "x.datepicker(\"option\", \"dateFormat\", \"" format "\");"))
-                            (h/text-field (conj attrs [:class "datepicker"]) "")))
+                        (do (add-jq-code
+                               (str "$(\"#" id "\").datepicker(\"option\", \"dateFormat\", \"" format "\");"))
+                            (h/text-field (assoc attrs :class "datepicker") "")))
                      [:text-area] (fn [size]  ;; TODO: See if size can be handled
                         (h/text-area attrs ""))
                      []   #(h/text-field attrs ""))]
         (concat (if (not (and opts (:no-label opts)))
                    (list (h/label id label) " "))
                 (list field (if line-break [:br] " ")))))
+
 (defmethod icsr-node->hiccup ::section [[_ params inner] accum-state]
     (let [[label id] (get-label-and-id (:naming params))
-          attrs      (conj (select-keys params #{:class}) [:id id])
+          attrs      (assoc (select-keys params #{:class}) :id id)
           [block-tag header]  (case (:section-level accum-state)
                 0 [:div      [:h2 label]]
                   [:fieldset [:legend label]])]
         [block-tag attrs header
-            (rec-icsr (merge-with + accum-state {:section-level 1}) inner)]))
+            (rec-icsr (update-in accum-state [:section-level] + 1) inner)]))
 
 (defmethod icsr-node->hiccup ::layout [[_ opt inner] accum-state]
   (case opt :same-line
-                [:p (rec-icsr (conj accum-state [:line-break false]) inner)]))
+                [:p (rec-icsr (assoc accum-state :line-break false) inner)]))
 
 (defmethod icsr-node->hiccup ::id-modifier [[_ func inner] accum-state]
-    (rec-icsr (merge-with comp accum-state {:id-modifier func}) inner))
+    (rec-icsr (update-in accum-state [:id-modifier] #(comp % func)) inner))
 
 
 (defn icsr-definition->hiccup [node]
-  (let [jq-code     (StringBuilder. "var x;")
+  (let [jq-code     (StringBuilder.)
         hiccup-code (icsr-node->hiccup node
-                         {:id-modifier identity
-                          :section-level 0
-                          :line-break true
-                          :jq-code jq-code})]
-     [hiccup-code (str jq-code)]))
+                        {:id-modifier identity
+                         :section-level 0
+                         :line-break true
+                         :add-jq-code #(.append jq-code %)
+                         :eval-strategy doall})]
+     [hiccup-code (.toString jq-code)]))
 
