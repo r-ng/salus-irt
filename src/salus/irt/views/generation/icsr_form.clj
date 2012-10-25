@@ -13,6 +13,9 @@
 (defn section [n & inner]
     [::section {:naming n} inner])
 
+(defn repeated-section [base-number n & inner]  ;; TODO: Handle repeated sections
+    [::section {:naming n, :repeated base-number} inner])
+
 (defn id-prefix [p & inner] [::id-modifier #(str p %) inner])
 
 (defn id-suffix [s & inner] [::id-modifier #(str % s) inner])
@@ -64,22 +67,25 @@
           attrs      {:id id, :name id}]
         (list (h/label id label) " " (h/text-field attrs "") (if line-break [:br] " "))))
 
-(defmethod icsr-node->hiccup ::field [field {:keys [id-modifier line-break]}]
+(defmethod icsr-node->hiccup ::field [field {:keys [id-modifier line-break jq-code]}]
     (let [[label id] (get-label-and-id (:naming field))
           id     (id-modifier id)
           attrs  {:id id, :name id}
           opts   (:opts field)
           field  (query-map field
                      [:selector]   #(h/drop-down attrs "" %)
-                     [:date] (fn [format]  ;; TODO: Handle format (if different than "") through javascript
-                        (h/text-field (conj attrs [:class "datepicker"]) ""))
+                     [:date] (fn [format]
+                        (do (.append jq-code
+                               (str "x = $(\"#" id "\");"  ;; TODO: Generate instead just a list of pairs (id,format)
+                                    "x.datepicker();"      ;; and the JS code necessary to initialize them
+                                    "x.datepicker(\"option\", \"dateFormat\", \"" format "\");"))
+                            (h/text-field (conj attrs [:class "datepicker"]) "")))
                      [:text-area] (fn [size]  ;; TODO: See if size can be handled
                         (h/text-area attrs ""))
                      []   #(h/text-field attrs ""))]
         (concat (if (not (and opts (:no-label opts)))
                    (list (h/label id label) " "))
                 (list field (if line-break [:br] " ")))))
-
 (defmethod icsr-node->hiccup ::section [[_ params inner] accum-state]
     (let [[label id] (get-label-and-id (:naming params))
           attrs      (conj (select-keys params #{:class}) [:id id])
@@ -98,8 +104,11 @@
 
 
 (defn icsr-definition->hiccup [node]
-    (icsr-node->hiccup node {:id-modifier identity
-                             :section-level 0
-                             :line-break true
-                             :jq-init-code (atom [])}))
+  (let [jq-code     (StringBuilder. "var x;")
+        hiccup-code (icsr-node->hiccup node
+                         {:id-modifier identity
+                          :section-level 0
+                          :line-break true
+                          :jq-code jq-code})]
+     [hiccup-code (str jq-code)]))
 

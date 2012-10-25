@@ -37,8 +37,14 @@
     (text "Regulatory authority's case report number" "authoritynumb")
     (text "Other sender's case report number" "companynumb")
     (yes-no "Other case identifiers in previous transmissions" "duplicate")
-    (text "Source(s) of the case identifier" "duplicatesource")   ;;  TODO: Allow repeatable fields
-    (text "Case indentifiers" "duplicatenumb")                    ;;  and groups
+    (repeated-section 0 "Report duplicate"
+        (text "Source(s) of the case identifier" "duplicatesource")
+        (text "Case indentifiers" "duplicatenumb"))                
+    (repeated-section 0 "Linked report"
+        (text "Number" "linkreportnumb"))
+    (yes-no "Nullification" "casenullification")
+    "Nullification reason"
+    (yes-no "Medically confirmed" "medicallyconfirm")
 ))
 
 (def basic-hospital-member-info
@@ -67,7 +73,7 @@
     "emailadress"])
 
 
-(def primary-source (section "Primary source"
+(def primary-source (repeated-section 1 "Primary source"
     (id-prefix "reporter" basic-hospital-member-info)
     "Country"
     (selector "Qualification"
